@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
-using TaskManagementService.Domain.Entities;
+using TaskManagementService.Application.DTOs;
 
 namespace TaskManagementService.Application.Services
 {
@@ -12,14 +12,14 @@ namespace TaskManagementService.Application.Services
         /// <summary>
         /// Отправляет уведомление о создании задачи
         /// </summary>
-        /// <param name="taskItem">Созданная задача</param>
-        Task NotifyTaskCreatedAsync(TaskItem taskItem);
+        /// <param name="taskDto">Созданная задача</param>
+        Task NotifyTaskCreatedAsync(TaskDto taskDto);
 
         /// <summary>
         /// Отправляет уведомление об обновлении задачи
         /// </summary>
-        /// <param name="taskItem">Обновленная задача</param>
-        Task NotifyTaskUpdatedAsync(TaskItem taskItem);
+        /// <param name="taskDto">Обновленная задача</param>
+        Task NotifyTaskUpdatedAsync(TaskDto taskDto);
 
         /// <summary>
         /// Отправляет уведомление об удалении задачи

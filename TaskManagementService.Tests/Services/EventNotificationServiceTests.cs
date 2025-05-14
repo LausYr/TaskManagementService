@@ -7,12 +7,14 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Moq.Protected;
+using TaskManagementService.Application.DTOs;
 using TaskManagementService.Application.Services;
 using TaskManagementService.Common;
-using TaskManagementService.Domain.Entities;
 using TaskManagementService.Domain.Enums;
 using TaskManagementService.Infrastructure.Messaging;
 using TaskManagementService.Infrastructure.Messaging.Events;
+using Xunit;
+
 namespace TaskManagementService.Tests.Application.Services
 {
     public class EventNotificationServiceTests
@@ -47,7 +49,13 @@ namespace TaskManagementService.Tests.Application.Services
         public async Task NotifyTaskCreatedAsync_ShouldPublishMessageAndCallApi()
         {
             // Arrange
-            var taskItem = new TaskItem("Test Task", "Test Description");
+            var taskDto = new TaskDto
+            {
+                Id = Guid.NewGuid(),
+                Title = "Test Task",
+                Description = "Test Description",
+                Status = TaskState.New
+            };
 
             _mockHttpMessageHandler
                 .Protected()
@@ -62,15 +70,15 @@ namespace TaskManagementService.Tests.Application.Services
                 });
 
             // Act
-            await _service.NotifyTaskCreatedAsync(taskItem);
+            await _service.NotifyTaskCreatedAsync(taskDto);
 
             // Assert
             _mockPublisher.Verify(p => p.PublishAsync(
                 It.Is<TaskCreatedEvent>(e =>
-                    e.TaskId == taskItem.Id &&
-                    e.Title == taskItem.Title &&
-                    e.Description == taskItem.Description &&
-                    e.Status == taskItem.Status
+                    e.TaskId == taskDto.Id &&
+                    e.Title == taskDto.Title &&
+                    e.Description == taskDto.Description &&
+                    e.Status == taskDto.Status
                 ),
                 MessageConstants.TaskCreatedRoutingKey
             ), Times.Once);
@@ -92,8 +100,13 @@ namespace TaskManagementService.Tests.Application.Services
         public async Task NotifyTaskUpdatedAsync_ShouldPublishMessageAndCallApi()
         {
             // Arrange
-            var taskItem = new TaskItem("Initial Task", "Initial Description");
-            taskItem.Update("Updated Task", "Updated Description", TaskState.InProgress);
+            var taskDto = new TaskDto
+            {
+                Id = Guid.NewGuid(),
+                Title = "Updated Task",
+                Description = "Updated Description",
+                Status = TaskState.InProgress
+            };
 
             // Настройка HTTP ответа
             _mockHttpMessageHandler
@@ -109,15 +122,15 @@ namespace TaskManagementService.Tests.Application.Services
                 });
 
             // Act
-            await _service.NotifyTaskUpdatedAsync(taskItem);
+            await _service.NotifyTaskUpdatedAsync(taskDto);
 
             // Assert
             _mockPublisher.Verify(p => p.PublishAsync(
                 It.Is<TaskUpdatedEvent>(e =>
-                    e.TaskId == taskItem.Id &&
-                    e.Title == taskItem.Title &&
-                    e.Description == taskItem.Description &&
-                    e.Status == taskItem.Status
+                    e.TaskId == taskDto.Id &&
+                    e.Title == taskDto.Title &&
+                    e.Description == taskDto.Description &&
+                    e.Status == taskDto.Status
                 ),
                 MessageConstants.TaskUpdatedRoutingKey
             ), Times.Once);
@@ -179,14 +192,20 @@ namespace TaskManagementService.Tests.Application.Services
         public async Task NotifyTaskCreatedAsync_WhenPublisherThrowsException_ShouldLogError()
         {
             // Arrange
-            var taskItem = new TaskItem("Test Task", "Test Description");
+            var taskDto = new TaskDto
+            {
+                Id = Guid.NewGuid(),
+                Title = "Test Task",
+                Description = "Test Description",
+                Status = TaskState.New
+            };
 
             _mockPublisher
                 .Setup(p => p.PublishAsync(It.IsAny<TaskCreatedEvent>(), It.IsAny<string>()))
                 .ThrowsAsync(new Exception("Test exception"));
 
             // Act
-            await _service.NotifyTaskCreatedAsync(taskItem);
+            await _service.NotifyTaskCreatedAsync(taskDto);
 
             // Assert
             _mockLogger.Verify(
@@ -203,8 +222,13 @@ namespace TaskManagementService.Tests.Application.Services
         public async Task NotifyTaskUpdatedAsync_WhenHttpClientThrowsException_ShouldLogError()
         {
             // Arrange
-            var taskItem = new TaskItem("Initial Task", "Initial Description");
-            taskItem.Update("Updated Task", "Updated Description", TaskState.InProgress);
+            var taskDto = new TaskDto
+            {
+                Id = Guid.NewGuid(),
+                Title = "Updated Task",
+                Description = "Updated Description",
+                Status = TaskState.InProgress
+            };
 
             _mockHttpMessageHandler
                 .Protected()
@@ -216,7 +240,7 @@ namespace TaskManagementService.Tests.Application.Services
                 .ThrowsAsync(new HttpRequestException("Test HTTP exception"));
 
             // Act
-            await _service.NotifyTaskUpdatedAsync(taskItem);
+            await _service.NotifyTaskUpdatedAsync(taskDto);
 
             // Assert
             _mockLogger.Verify(

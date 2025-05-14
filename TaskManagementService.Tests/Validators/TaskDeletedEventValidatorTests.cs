@@ -1,9 +1,9 @@
 ﻿using FluentValidation.TestHelper;
 using System;
 using TaskManagementService.Infrastructure.Messaging.Events;
-using TaskManagementService.Listener.Validators;
+using TaskManagementService.Application.Validators;
 
-namespace TaskManagementService.Listener.Tests.Validators
+namespace TaskManagementService.Tests.Validators
 {
     public class TaskDeletedEventValidatorTests
     {

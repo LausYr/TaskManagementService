@@ -19,13 +19,16 @@ namespace TaskManagementService.API.Controllers.V1
     public class TasksController : ControllerBase
     {
         private readonly ITaskService _taskService;
+        private readonly IEventNotificationService _eventNotificationService;
         private readonly ILogger<TasksController> _logger;
 
         public TasksController(
             ITaskService taskService,
+            IEventNotificationService eventNotificationService,
             ILogger<TasksController> logger)
         {
             _taskService = taskService ?? throw new ArgumentNullException(nameof(taskService));
+            _eventNotificationService = eventNotificationService ?? throw new ArgumentNullException(nameof(eventNotificationService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
@@ -61,7 +64,21 @@ namespace TaskManagementService.API.Controllers.V1
             CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("Создание новой задачи: {TaskTitle}", createTaskDto.Title);
+
+            // Создаем задачу через сервис
             var createdTask = await _taskService.CreateTaskAsync(createTaskDto, cancellationToken);
+
+            // Отправляем уведомление напрямую из контроллера, используя TaskDto
+            try
+            {
+                await _eventNotificationService.NotifyTaskCreatedAsync(createdTask);
+                _logger.LogInformation("Отправлено уведомление о создании задачи: {TaskId}", createdTask.Id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при отправке уведомления о создании задачи: {TaskId}", createdTask.Id);
+            }
+
             return CreatedAtAction(nameof(GetById), new { id = createdTask.Id, version = HttpContext.GetRequestedApiVersion()?.ToString() }, createdTask);
         }
 
@@ -75,7 +92,21 @@ namespace TaskManagementService.API.Controllers.V1
             CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("Обновление задачи: {TaskId}", id);
+
+            // Обновляем задачу через сервис
             var updatedTask = await _taskService.UpdateTaskAsync(id, updateTaskDto, cancellationToken);
+
+            // Отправляем уведомление напрямую из контроллера, используя TaskDto
+            try
+            {
+                await _eventNotificationService.NotifyTaskUpdatedAsync(updatedTask);
+                _logger.LogInformation("Отправлено уведомление об обновлении задачи: {TaskId}", updatedTask.Id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при отправке уведомления об обновлении задачи: {TaskId}", updatedTask.Id);
+            }
+
             return Ok(updatedTask);
         }
 
@@ -85,7 +116,21 @@ namespace TaskManagementService.API.Controllers.V1
         public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("Удаление задачи: {TaskId}", id);
+
+            // Удаляем задачу через сервис
             await _taskService.DeleteTaskAsync(id, cancellationToken);
+
+            // Отправляем уведомление напрямую из контроллера
+            try
+            {
+                await _eventNotificationService.NotifyTaskDeletedAsync(id);
+                _logger.LogInformation("Отправлено уведомление об удалении задачи: {TaskId}", id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка при отправке уведомления об удалении задачи: {TaskId}", id);
+            }
+
             return NoContent();
         }
     }

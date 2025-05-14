@@ -1,6 +1,6 @@
 ﻿using FluentValidation.TestHelper;
 using TaskManagementService.Infrastructure.Messaging.Events;
-using TaskManagementService.Listener.Validators;
+using TaskManagementService.Application.Validators;
 using TaskManagementService.Domain.Enums;
 using System.Linq;
 using System;

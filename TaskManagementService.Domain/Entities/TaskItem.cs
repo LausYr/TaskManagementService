@@ -1,6 +1,5 @@
 ﻿using System;
 using TaskManagementService.Domain.Enums;
-using TaskManagementService.Domain.Exceptions;
 
 namespace TaskManagementService.Domain.Entities
 {
@@ -49,9 +48,6 @@ namespace TaskManagementService.Domain.Entities
         /// <param name="description">Описание задачи</param>
         public TaskItem(string title, string description)
         {
-            if (string.IsNullOrWhiteSpace(title))
-                throw new DomainException("Название задачи не может быть пустым");
-
             Id = Guid.NewGuid();
             Title = title;
             Description = description ?? string.Empty;
@@ -68,9 +64,6 @@ namespace TaskManagementService.Domain.Entities
         /// <param name="status">Новый статус задачи</param>
         public void Update(string title, string description, TaskState status)
         {
-            if (string.IsNullOrWhiteSpace(title))
-                throw new DomainException("Название задачи не может быть пустым");
-
             Title = title;
             Description = description ?? string.Empty;
             Status = status;

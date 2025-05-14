@@ -7,7 +7,6 @@ using System.Net.Http;
 using TaskManagementService.Application.Filters;
 using TaskManagementService.Application.Services;
 using TaskManagementService.Application.Validators;
-using TaskManagementService.Listener.Validators;
 
 namespace TaskManagementService.Application
 {

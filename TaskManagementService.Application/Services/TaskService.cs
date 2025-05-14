@@ -1,12 +1,16 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using TaskManagementService.Application.DTOs;
 using TaskManagementService.Application.Exceptions;
 using TaskManagementService.Application.Mapping;
 using TaskManagementService.Domain.Entities;
-using TaskManagementService.Domain.Repositories;
+using TaskManagementService.Domain.Enums;
+using TaskManagementService.Infrastructure.Data;
 
 namespace TaskManagementService.Application.Services
 {
@@ -15,17 +19,14 @@ namespace TaskManagementService.Application.Services
     /// </summary>
     public class TaskService : ITaskService
     {
-        private readonly ITaskItemRepository _taskRepository;
-        private readonly IEventNotificationService _eventNotificationService;
+        private readonly AppDbContext _dbContext;
         private readonly ILogger<TaskService> _logger;
 
         public TaskService(
-            ITaskItemRepository taskRepository,
-            IEventNotificationService eventNotificationService,
+            AppDbContext dbContext,
             ILogger<TaskService> logger)
         {
-            _taskRepository = taskRepository ?? throw new ArgumentNullException(nameof(taskRepository));
-            _eventNotificationService = eventNotificationService ?? throw new ArgumentNullException(nameof(eventNotificationService));
+            _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
@@ -38,8 +39,13 @@ namespace TaskManagementService.Application.Services
             var skip = (paginationParams.Page - 1) * paginationParams.PageSize;
             var take = paginationParams.PageSize;
 
-            var tasks = await _taskRepository.GetAllAsync(skip, take, cancellationToken);
-            var totalCount = await _taskRepository.GetCountAsync(cancellationToken);
+            var tasks = await _dbContext.TaskItems
+                .OrderByDescending(t => t.CreatedAt)
+                .Skip(skip)
+                .Take(take)
+                .ToListAsync(cancellationToken);
+
+            var totalCount = await _dbContext.TaskItems.CountAsync(cancellationToken);
 
             return tasks.ToTaskListDto(totalCount, paginationParams.Page, paginationParams.PageSize);
         }
@@ -49,7 +55,8 @@ namespace TaskManagementService.Application.Services
         {
             _logger.LogInformation("Получение задачи по ID: {TaskId}", id);
 
-            var task = await _taskRepository.GetByIdAsync(id, cancellationToken);
+            var task = await _dbContext.TaskItems
+                .FirstOrDefaultAsync(t => t.Id == id, cancellationToken);
 
             if (task == null)
             {
@@ -67,30 +74,19 @@ namespace TaskManagementService.Application.Services
 
             var task = new TaskItem(createTaskDto.Title, createTaskDto.Description);
 
-            await _taskRepository.AddAsync(task, cancellationToken);
-
-            _ = Task.Run(async () =>
-            {
-                _logger.LogInformation("Начало фоновой отправки уведомления о создании задачи с ID: {TaskId}", task.Id);
-                try
-                {
-                    await _eventNotificationService.NotifyTaskCreatedAsync(task);
-                    _logger.LogInformation("Завершена фоновая отправка уведомления о создании задачи с ID: {TaskId}", task.Id);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Ошибка при фоновой отправке уведомления о создании задачи с ID: {TaskId}", task.Id);
-                }
-            }, cancellationToken);
+            await _dbContext.TaskItems.AddAsync(task, cancellationToken);
+            await _dbContext.SaveChangesAsync(cancellationToken);
 
             return task.ToDto();
         }
+
         /// <inheritdoc/>
         public async Task<TaskDto> UpdateTaskAsync(Guid id, UpdateTaskDto updateTaskDto, CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("Обновление задачи с ID: {TaskId}", id);
 
-            var task = await _taskRepository.GetByIdAsync(id, cancellationToken);
+            var task = await _dbContext.TaskItems
+                .FirstOrDefaultAsync(t => t.Id == id, cancellationToken);
 
             if (task == null)
             {
@@ -100,21 +96,8 @@ namespace TaskManagementService.Application.Services
 
             task.Update(updateTaskDto.Title, updateTaskDto.Description, updateTaskDto.Status);
 
-            await _taskRepository.UpdateAsync(task, cancellationToken);
-
-            _ = Task.Run(async () =>
-            {
-                _logger.LogInformation("Начало фоновой отправки уведомления об обновлении задачи с ID: {TaskId}", id);
-                try
-                {
-                    await _eventNotificationService.NotifyTaskUpdatedAsync(task);
-                    _logger.LogInformation("Завершена фоновая отправка уведомления об обновлении задачи с ID: {TaskId}", id);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Ошибка при фоновой отправке уведомления об обновлении задачи с ID: {TaskId}", id);
-                }
-            }, cancellationToken);
+            _dbContext.TaskItems.Update(task);
+            await _dbContext.SaveChangesAsync(cancellationToken);
 
             return task.ToDto();
         }
@@ -124,7 +107,8 @@ namespace TaskManagementService.Application.Services
         {
             _logger.LogInformation("Удаление задачи с ID: {TaskId}", id);
 
-            var task = await _taskRepository.GetByIdAsync(id, cancellationToken);
+            var task = await _dbContext.TaskItems
+                .FirstOrDefaultAsync(t => t.Id == id, cancellationToken);
 
             if (task == null)
             {
@@ -132,21 +116,8 @@ namespace TaskManagementService.Application.Services
                 throw new NotFoundException("Task", id);
             }
 
-            await _taskRepository.DeleteAsync(id, cancellationToken);
-
-            _ = Task.Run(async () =>
-            {
-                _logger.LogInformation("Начало фоновой отправки уведомления об удалении задачи с ID: {TaskId}", id);
-                try
-                {
-                    await _eventNotificationService.NotifyTaskDeletedAsync(id);
-                    _logger.LogInformation("Завершена фоновая отправка уведомления об удалении задачи с ID: {TaskId}", id);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Ошибка при фоновой отправке уведомления об удалении задачи с ID: {TaskId}", id);
-                }
-            }, cancellationToken);
+            _dbContext.TaskItems.Remove(task);
+            await _dbContext.SaveChangesAsync(cancellationToken);
         }
     }
 }

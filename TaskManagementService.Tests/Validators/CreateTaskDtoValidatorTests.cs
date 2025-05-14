@@ -1,7 +1,6 @@
 ﻿using FluentValidation.TestHelper;
 using TaskManagementService.Application.DTOs;
 using TaskManagementService.Application.Validators;
-using Xunit;
 using System.Linq;
 
 namespace TaskManagementService.Tests.Validators

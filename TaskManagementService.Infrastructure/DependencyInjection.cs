@@ -9,11 +9,8 @@ using System.Threading.Tasks;
 using System.Threading;
 using System;
 using TaskManagementService.Common.Configuration;
-using TaskManagementService.Domain.Repositories;
 using TaskManagementService.Infrastructure.Data;
 using TaskManagementService.Infrastructure.Messaging;
-using TaskManagementService.Infrastructure.Repositories;
-using Polly;
 
 namespace TaskManagementService.Infrastructure
 {
@@ -37,9 +34,6 @@ namespace TaskManagementService.Infrastructure
                     connectionString,
                     b => b.MigrationsAssembly("TaskManagementService.Infrastructure"));
             });
-
-            // Репозиторий
-            services.AddScoped<ITaskItemRepository, TaskItemRepository>();
 
             return services;
         }

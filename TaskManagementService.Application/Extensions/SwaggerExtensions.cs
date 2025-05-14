@@ -77,7 +77,7 @@ namespace TaskManagementService.Application.Extensions
                 Title = $"{serviceName} API v{version}",
                 Version = version.ToString(),
                 Description = $"API для {serviceName}",
-                Contact = new OpenApiContact { Name = $"{serviceName} Team", Email = contactEmail }
+                Contact = new OpenApiContact { Name = $"{serviceName} BrBrPotapim", Email = contactEmail }
             };
         }
 
