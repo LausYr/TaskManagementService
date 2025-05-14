@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "TaskManagementService.EventConsumer": {
+      "commandName": "Project"
+    },
+    "Docker": {
+      "commandName": "Docker"
+    }
+  }
+}

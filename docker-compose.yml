@@ -1,0 +1,99 @@
+services:
+  postgres:
+    image: postgres:14
+    environment:
+      POSTGRES_DB: taskmanagement
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  taskmanagement-api:
+    build:
+      context: .
+      dockerfile: TaskManagementService.API/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=taskmanagement;Username=postgres;Password=admin
+      - RabbitMQ__HostName=rabbitmq
+      - RabbitMQ__Port=5672
+      - RabbitMQ__UserName=guest
+      - RabbitMQ__Password=guest
+      - RabbitMQ__VirtualHost=/
+      - RabbitMQ__ExchangeName=task_events
+      - RabbitMQ__QueueName=task_events_queue
+      - RabbitMQ__DLXExchangeName=dlx_task_events
+      - RabbitMQ__DLQQueueName=dlq_task_events_queue
+      - RabbitMQ__RoutingKeys__0=task.created
+      - RabbitMQ__RoutingKeys__1=task.updated
+      - RabbitMQ__RoutingKeys__2=task.deleted
+      - ListenerUrl=http://taskmanagement-listener:80
+      - AllowedOrigins__0=http://taskmanagement-listener:80
+      - AllowedOrigins__1=http://localhost:5175
+      - AllowedOrigins__2=http://localhost:5000
+      - AllowedOrigins__3=http://localhost:5001
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    ports:
+      - "5000:80"
+
+  taskmanagement-listener:
+    build:
+      context: .
+      dockerfile: TaskManagementService.Listener/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - AllowedOrigins__0=http://taskmanagement-api:80
+      - AllowedOrigins__1=http://localhost:5240
+      - AllowedOrigins__2=http://localhost:5000
+      - AllowedOrigins__3=http://localhost:5001
+    ports:
+      - "5001:80"
+
+  taskmanagement-eventconsumer:
+    build:
+      context: .
+      dockerfile: TaskManagementService.EventConsumer/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - RabbitMQ__HostName=rabbitmq
+      - RabbitMQ__Port=5672
+      - RabbitMQ__UserName=guest
+      - RabbitMQ__Password=guest
+      - RabbitMQ__VirtualHost=/
+      - RabbitMQ__ExchangeName=task_events
+      - RabbitMQ__QueueName=task_events_queue
+      - RabbitMQ__DLXExchangeName=dlx_task_events
+      - RabbitMQ__DLQQueueName=dlq_task_events_queue
+      - RabbitMQ__RoutingKeys__0=task.created
+      - RabbitMQ__RoutingKeys__1=task.updated
+      - RabbitMQ__RoutingKeys__2=task.deleted
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
