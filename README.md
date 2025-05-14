@@ -1,5 +1,4 @@
 # TaskManagementService
-WSL2:
 Убедись, что Docker Desktop настроен на WSL2.
 
 git clone <URL_репозитория>
