@@ -43,7 +43,7 @@ namespace TaskManagementService.Tests.Validators
             var result = _validator.TestValidate(model);
             result.ShouldHaveValidationErrorFor(x => x.Title)
                   .WithErrorMessage("Название задачи обязательно.");
-            // Для диагностики
+
             if (!result.IsValid)
             {
                 var errors = string.Join("; ", result.Errors.Select(e => $"{e.PropertyName}: {e.ErrorMessage}"));
@@ -58,7 +58,7 @@ namespace TaskManagementService.Tests.Validators
             var result = _validator.TestValidate(model);
             result.ShouldHaveValidationErrorFor(x => x.Title)
                   .WithErrorMessage("Название задачи обязательно.");
-            // Для диагностики
+
             if (!result.IsValid)
             {
                 var errors = string.Join("; ", result.Errors.Select(e => $"{e.PropertyName}: {e.ErrorMessage}"));

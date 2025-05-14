@@ -35,7 +35,7 @@ namespace TaskManagementService.API.Controllers.V1
         [HttpGet]
         [ProducesResponseType(typeof(TaskListDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<TaskListDto>> GetAll(
+        public async Task<ActionResult<TaskListDto>> GetAllAsync(
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10,
             CancellationToken cancellationToken = default)
@@ -49,7 +49,7 @@ namespace TaskManagementService.API.Controllers.V1
         [HttpGet("{id:guid}")]
         [ProducesResponseType(typeof(TaskDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<TaskDto>> GetById(Guid id, CancellationToken cancellationToken = default)
+        public async Task<ActionResult<TaskDto>> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("Получение задачи по ID: {TaskId}", id);
             var task = await _taskService.GetTaskByIdAsync(id, cancellationToken);
@@ -59,7 +59,7 @@ namespace TaskManagementService.API.Controllers.V1
         [HttpPost]
         [ProducesResponseType(typeof(TaskDto), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<TaskDto>> Create(
+        public async Task<ActionResult<TaskDto>> CreateAsync(
             [FromBody] CreateTaskDto createTaskDto,
             CancellationToken cancellationToken = default)
         {
@@ -79,14 +79,14 @@ namespace TaskManagementService.API.Controllers.V1
                 _logger.LogError(ex, "Ошибка при отправке уведомления о создании задачи: {TaskId}", createdTask.Id);
             }
 
-            return CreatedAtAction(nameof(GetById), new { id = createdTask.Id, version = HttpContext.GetRequestedApiVersion()?.ToString() }, createdTask);
+            return CreatedAtAction("GetById", new { id = createdTask.Id, version = HttpContext.GetRequestedApiVersion()?.ToString() }, createdTask);
         }
 
         [HttpPut("{id:guid}")]
         [ProducesResponseType(typeof(TaskDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<TaskDto>> Update(
+        public async Task<ActionResult<TaskDto>> UpdateAsync(
             Guid id,
             [FromBody] UpdateTaskDto updateTaskDto,
             CancellationToken cancellationToken = default)
@@ -113,7 +113,7 @@ namespace TaskManagementService.API.Controllers.V1
         [HttpDelete("{id:guid}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken = default)
+        public async Task<IActionResult> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("Удаление задачи: {TaskId}", id);
 
